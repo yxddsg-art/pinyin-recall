@@ -9,7 +9,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = 'v0.2',
+    [string]$Version = 'v0.2.1',
     [switch]$SkipRuntime,
     [string]$AhkUrl = 'https://www.autohotkey.com/download/ahk-v2.zip'
 )
@@ -42,6 +42,7 @@ Copy-Item (Join-Path $root '设置.ini') $buildDir
 Copy-Item (Join-Path $root '黑名单.txt') $buildDir
 Copy-Item (Join-Path $root '安装.ps1') $buildDir
 Copy-Item (Join-Path $root 'README.md') $buildDir
+Copy-Item (Join-Path $root '守护启动器.vbs') $buildDir
 Copy-Item (Join-Path $root 'LICENSE') $buildDir
 
 if (-not $SkipRuntime) {
@@ -92,9 +93,10 @@ $guide = @'
 
 【常用操作】
 · 托盘图标右键：暂停/启用、诊断当前窗口、打开设置.ini、打开日志、退出
-· 想开机自启：在本文件夹按住 Shift 右键 -> 「在此处打开 PowerShell 窗口」，
+· 想开机自启 / 被关掉后自动恢复：在本文件夹按住 Shift 右键 -> 「在此处打开 PowerShell 窗口」，
   执行： powershell -ExecutionPolicy Bypass -File .\安装.ps1 -AutoStart
-  （安装.ps1 还可以帮你创建桌面/文件夹快捷方式）
+  会注册计划任务「拼音回改-守护」：登录自启 + 每 5 分钟自检，进程不在就静默拉起。
+  不想用了： Unregister-ScheduledTask -TaskName '拼音回改-守护' -Confirm:$false
 · 改设置：用记事本打开 设置.ini，改完在托盘菜单点「重新加载」
 
 【常见问题】

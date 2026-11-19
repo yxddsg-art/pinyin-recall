@@ -47,6 +47,23 @@ powershell -ExecutionPolicy Bypass -File .\安装.ps1 -AutoStart
 2. 双击 `拼音选中回改.ahk`（或建个快捷方式，目标填 `AutoHotkey64.exe`，参数填脚本绝对路径）
 3. 托盘出现图标即启动成功
 
+## 开机自启 / 被关掉自动恢复
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\安装.ps1 -AutoStart
+```
+
+会注册计划任务 **「拼音回改-守护」**：登录时自动启动，之后**每 5 分钟自检一次**，进程不在了就静默拉起（无窗口、不打扰）。
+
+> 为什么需要它：本工具是独立进程，DSH / 终端会话重启或手动关闭后不会自己回来。有了守护任务，重装/更新其他软件、重启电脑之后都不用再去手动双击。
+
+管理：
+
+```powershell
+Get-ScheduledTask -TaskName '拼音回改-守护' | Select-Object TaskName, State   # 查看
+Disable-ScheduledTask -TaskName '拼音回改-守护'                                # 暂停自检
+Unregister-ScheduledTask -TaskName '拼音回改-守护' -Confirm:$false             # 彻底删除
+```
 ## 使用
 
 1. 在任意输入框里用英文状态打出拼音（空格/大小写/数字都没关系）

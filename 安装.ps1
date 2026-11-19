@@ -80,9 +80,28 @@ $lnk.Save()
 Write-Host ("快捷方式: {0}" -f $lnkPath)
 
 if ($AutoStart) {
-    $startup = [Environment]::GetFolderPath('Startup')
-    Copy-Item $lnkPath (Join-Path $startup '拼音选中回改.lnk') -Force
-    Write-Host '已加入开机自启。'
+    $vbs = Join-Path $root '守护启动器.vbs'
+    if (-not (Test-Path $vbs)) {
+        Write-Host '缺少 守护启动器.vbs，跳过守护任务注册。'
+    } else {
+        $taskName = '拼音回改-守护'
+        $user = "$env:USERDOMAIN\$env:USERNAME"
+        try {
+            $action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument ('"' + $vbs + '"') -WorkingDirectory $root
+            $t1 = New-ScheduledTaskTrigger -AtLogOn -User $user
+            $t2 = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(2)) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration (New-TimeSpan -Days 3650)
+            $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
+            $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
+            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger @($t1, $t2) -Principal $principal -Settings $settings -Description '拼音选中回改：登录自启 + 每 5 分钟自检' -Force | Out-Null
+            Write-Host '已注册守护任务：登录自启 + 每 5 分钟自检（进程不在会静默拉起）。'
+            Write-Host ('删除守护任务：Unregister-ScheduledTask -TaskName ' + $taskName + ' -Confirm:$false')
+        } catch {
+            Write-Host ('注册守护任务失败: ' + $_.Exception.Message)
+            $startup = [Environment]::GetFolderPath('Startup')
+            Copy-Item $lnkPath (Join-Path $startup '拼音选中回改.lnk') -Force
+            Write-Host '已退化为：只加入开机启动文件夹。'
+        }
+    }
 }
 
 Write-Host ''
