@@ -17,8 +17,17 @@
 
 核心思路不是"自己写一个拼音转汉字引擎"，而是**复用系统的输入法**——所以词库质量、多音字、联想能力都和你日常打字一致。
 
-## 安装
+## 下载（免安装便携版）
 
+不想折腾命令行？直接下载打包好的 zip：
+
+**👉 [拼音选中回改 v0.2 便携版](https://github.com/yxddsg-art/pinyin-recall/releases/latest)**
+
+解压后双击 `双击这里启动.vbs` 即可（zip 内已含 AutoHotkey 运行时，纯绿色、解压即用）。
+
+> 部分杀毒软件可能对 AutoHotkey 运行时误报，可添加信任；或删除 `bin` 文件夹后运行 `安装.ps1` 从官网重新下载。
+
+## 安装
 **方式一：一键脚本（推荐）**
 
 ```powershell
@@ -107,6 +116,8 @@ powershell -ExecutionPolicy Bypass -File .\安装.ps1 -AutoStart
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\端到端验证.ps1 -Text "wo ming tian qu bei jing" -LogPath ".\日志\运行日志.log"
 ```
+
+维护者打包：`powershell -ExecutionPolicy Bypass -File .\打包发布.ps1` 生成 `dist\拼音选中回改-v0.2.zip`（含运行时与无窗口启动器）。
 
 ## 常见问题
 

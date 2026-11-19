@@ -8,6 +8,10 @@ Windows 10/11 · [AutoHotkey v2](https://www.autohotkey.com/) · no network, no 
 
 When your Chinese IME is in English mode, keystrokes produce raw pinyin. This tool takes the **selected pinyin**, re-feeds it into **your current IME**, and lets the IME produce its normal candidates — so ranking, personal dictionary and cloud candidates are identical to normal typing. You then choose with `1`–`9` / `Space` as usual.
 
+## Download (portable, no install)
+
+**👉 [Pinyin Recall v0.2 portable zip](https://github.com/yxddsg-art/pinyin-recall/releases/latest)** — unzip and double-click `双击这里启动.vbs` (AutoHotkey runtime bundled).
+
 ## Install
 
 ```powershell
