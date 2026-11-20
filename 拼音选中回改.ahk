@@ -160,7 +160,7 @@ CleanupLineSelection(proc) {
 
 BuildLineCopyMap(text) {
     global g_lineCopyApps
-    for item in StrSplit(RegExpReplace(text, "\s+", ""), ",")
+    for item in StrSplit(RegExReplace(text, "\s+", ""), ",")
         if (item != "")
             g_lineCopyApps[StrLower(item)] := true
 }
