@@ -21,7 +21,7 @@
 
 不想折腾命令行？直接下载打包好的 zip：
 
-**👉 [拼音选中回改 v0.2 便携版](https://github.com/yxddsg-art/pinyin-recall/releases/latest)**
+**👉 [拼音选中回改 v0.2.3 便携版](https://github.com/yxddsg-art/pinyin-recall/releases/tag/v0.2.3)**
 
 解压后双击 `双击这里启动.vbs` 即可（zip 内已含 AutoHotkey 运行时，纯绿色、解压即用）。
 
@@ -89,6 +89,13 @@ Unregister-ScheduledTask -TaskName '拼音回改-守护' -Confirm:$false        
 
 遇到候选不对/不出候选时，先点托盘 → **诊断当前窗口**，把日志里那行 `IME探测[...]` 发到 Issue。
 
+## JetBrains 系编辑器（PyCharm / IDEA 等）
+
+JetBrains 的编辑器有个特性：**没有选中文本时按 `Ctrl+C` 会「复制整行并选中该行」**。工具读选区用的正是 `Ctrl+C`，所以在 PyCharm 里「选着字按 Shift」没问题，但「没选字按 Shift」会把当前行选中。
+
+v0.2.3 起已处理：读到的内容不是拼音（说明刚才没有选区、是整行被复制了），工具会补发一个 `Esc` 把误选中清掉（实测 `Esc` 清选中且不移动光标），日志记「已清理整行误选中(Esc)」。
+
+默认覆盖 JetBrains 全家桶（`pycharm64.exe`、`idea64.exe`、`webstorm64.exe`、`goland64.exe`、`clion64.exe` 等），可在 `设置.ini` 的 `[apps] LineCopyApps` 里增删。
 ## 原理（三步）
 
 1. **切换**：你按下的 `Shift` 本身就让输入法从英文切回中文（多数输入法默认如此）；若输入法切换键不是 Shift，工具会用 `ToggleKey` 补发一次。
@@ -111,6 +118,7 @@ Unregister-ScheduledTask -TaskName '拼音回改-守护' -Confirm:$false        
 | `[ime] RequiredLangId` | `0` | 中英是两套键盘布局时填 `0x0804`（简体中文）；同输入法内切换保持 0 |
 | `[replay] PressMs` / `GapMs` | `22` / `26` | 回灌每个字母的按下时长 / 间隔。某程序吃键慢就加大 |
 | `[ui] TipErrors` | `1` | 出错时鼠标旁弹提示 |
+| `[apps] LineCopyApps` | JetBrains 全家桶 | 这些编辑器「无选区时 Ctrl+C=复制整行」，读到非拼音时自动发 Esc 清掉误选中 |
 
 另有 `黑名单.txt`：每行一个进程名（如 `photoshop.exe`），这些程序里不会触发。
 

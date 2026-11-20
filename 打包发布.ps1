@@ -9,7 +9,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = 'v0.2.1',
+    [string]$Version = 'v0.2.3',
     [switch]$SkipRuntime,
     [string]$AhkUrl = 'https://www.autohotkey.com/download/ahk-v2.zip'
 )
@@ -77,7 +77,7 @@ sh.Run """" & exe & """ """ & scr & """", 0, False
 
 # ---------- 3. 使用说明（UTF-8 BOM，记事本可读） ----------
 $guide = @'
-拼音选中回改 v0.2 · 使用说明（30 秒版）
+拼音选中回改 v0.2.3 · 使用说明（30 秒版）
 ========================================
 
 【启动】

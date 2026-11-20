@@ -21,6 +21,9 @@ CFG_REQLANG   := 0          ; 需要中文键盘布局时填 0x0804，0=不检�
 CFG_PRESS     := 22         ; 回灌每个字母按下时长(ms)
 CFG_GAP       := 26         ; 回灌字母之间间隔(ms)
 CFG_TIP       := true       ; 出错时鼠标旁弹一行提示
+; 这些编辑器"没有选区时 Ctrl+C = 复制整行并选中该行"。读到非拼音时用 Esc 把误选中清掉。
+; 默认 JetBrains 全家桶；用逗号分隔，可自行增加。
+CFG_LINECOPY  := "pycharm64.exe,idea64.exe,webstorm64.exe,goland64.exe,clion64.exe,rider64.exe,datagrip64.exe,phpstorm64.exe,rubymine64.exe,studio64.exe"
 CFG_BLACKLIST := ["mstsc.exe", "rdpclip.exe", "vmware-vmx.exe"]
 CFG_BLFILE    := A_ScriptDir "\黑名单.txt"
 CFG_FILE      := A_ScriptDir "\设置.ini"
@@ -35,15 +38,18 @@ global g_busy := false
 global g_paused := false
 global g_triggerDown := 0
 global g_otherKey := false
+global g_mouseDuring := false
 global g_savedClip := ""
 global g_hasClip := false
 global g_syl := Map()
 global g_blackExtra := Map()
 global g_convDebug := ""
+global g_lineCopyApps := Map()
 
 DirCreate LOG_DIR
 LoadConfig()
-Log("===== 启动 v0.2 =====")
+BuildLineCopyMap(CFG_LINECOPY)
+Log("===== 启动 v0.2.3 =====")
 Log("触发键=" CFG_TRIGGER " | 切换键=" CFG_TOGGLE " | 假定中文=" CFG_ASSUME " | 要求语言=" (CFG_REQLANG ? Format("{:#x}", CFG_REQLANG) : "不检查"))
 BuildSyllables(SYL_TEXT)
 LoadBlacklistFile()
@@ -54,7 +60,7 @@ LoadConfig() {
     global CFG_FILE
     if !FileExist(CFG_FILE)
         return
-    global CFG_TRIGGER, CFG_HOLD_MAX, CFG_SETTLE, CFG_TOGGLE, CFG_ASSUME, CFG_REQLANG, CFG_PRESS, CFG_GAP, CFG_TIP
+    global CFG_TRIGGER, CFG_HOLD_MAX, CFG_SETTLE, CFG_TOGGLE, CFG_ASSUME, CFG_REQLANG, CFG_PRESS, CFG_GAP, CFG_TIP, CFG_LINECOPY
     try {
         v := Trim(IniRead(CFG_FILE, "trigger", "Key", CFG_TRIGGER))
         if (v != "")
@@ -70,6 +76,9 @@ LoadConfig() {
         CFG_PRESS := Number(IniRead(CFG_FILE, "replay", "PressMs", CFG_PRESS))
         CFG_GAP := Number(IniRead(CFG_FILE, "replay", "GapMs", CFG_GAP))
         CFG_TIP := IniRead(CFG_FILE, "ui", "TipErrors", CFG_TIP ? 1 : 0) = 1
+        v := Trim(IniRead(CFG_FILE, "apps", "LineCopyApps", CFG_LINECOPY))
+        if (v != "")
+            CFG_LINECOPY := v
     } catch as e {
         Log("读设置.ini 失败，使用默认值: " e.Message)
     }
@@ -86,28 +95,32 @@ RegisterHotkeys() {
              . ",0,1,2,3,4,5,6,7,8,9"
              . ",Space,Enter,Tab,Backspace,Delete,Escape"
              . ",Left,Right,Up,Down,Home,End,PgUp,PgDn"
-             . ",LButton,RButton,MButton"
+    ; 不要给鼠标键注册热键：全局鼠标钩子会插进点击链路，部分系统上会让任务栏"点击激活窗口"失效。
+    ; 改为 WatchMouse 定时采样（同样能识别 Shift+点击）。
     for k in StrSplit(keyList, ",")
         Hotkey("~*" k, TrackOtherKey)
     return true
 }
 
 OnTriggerDown(*) {
-    global g_triggerDown, g_otherKey, g_busy
+    global g_triggerDown, g_otherKey, g_busy, g_mouseDuring
     if (g_busy)
         return
     g_triggerDown := A_TickCount
     g_otherKey := false
+    g_mouseDuring := false
+    SetTimer(WatchMouse, 20)
 }
 
 OnTriggerUp(*) {
-    global g_triggerDown, g_otherKey, g_busy, g_paused, CFG_HOLD_MAX, CFG_TRIGGER
+    global g_triggerDown, g_otherKey, g_busy, g_paused, CFG_HOLD_MAX, CFG_TRIGGER, g_mouseDuring
+    SetTimer(WatchMouse, 0)
     if (g_busy || g_paused)
         return
     held := A_TickCount - g_triggerDown
     if (held > CFG_HOLD_MAX)
         return
-    if (g_otherKey)
+    if (g_otherKey || g_mouseDuring)
         return
     if (GetKeyState("Ctrl", "P") || GetKeyState("Alt", "P"))
         return
@@ -125,6 +138,31 @@ TrackOtherKey(*) {
         return
     if (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
         g_otherKey := true
+}
+
+; 触发键按住期间是否点过鼠标（不挂鼠标钩子，改用采样）
+WatchMouse() {
+    global g_mouseDuring
+    if (GetKeyState("LButton", "P") || GetKeyState("RButton", "P") || GetKeyState("MButton", "P"))
+        g_mouseDuring := true
+}
+
+; JetBrains 系编辑器：无选区时 Ctrl+C 会"复制整行并选中该行"。
+; 读到非拼音/空内容时，发 Esc 把误选中清掉（Esc 不会移动光标）。
+CleanupLineSelection(proc) {
+    global g_lineCopyApps
+    if !g_lineCopyApps.Has(proc)
+        return
+    Send("{Esc}")
+    Sleep 70
+    Log("已清理整行误选中(Esc): " proc)
+}
+
+BuildLineCopyMap(text) {
+    global g_lineCopyApps
+    for item in StrSplit(RegExpReplace(text, "\s+", ""), ",")
+        if (item != "")
+            g_lineCopyApps[StrLower(item)] := true
 }
 
 ; ================= 主流程 =================
@@ -146,6 +184,7 @@ DoConvert() {
         ; 1) 读选区（剪贴板哨兵）
         sel := ReadSelection()
         if (sel = "") {
+            CleanupLineSelection(proc)
             Log("跳过·读不到选区: " proc)
             return
         }
@@ -153,6 +192,7 @@ DoConvert() {
         ; 2) 必须是拼音
         pinyin := NormalizePinyin(sel)
         if (pinyin = "") {
+            CleanupLineSelection(proc)
             Log("跳过·不是拼音: " proc " | " Abbrev(sel))
             if CFG_TIP
                 Tip("选区不像拼音，已忽略")
